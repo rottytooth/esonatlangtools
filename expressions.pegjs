@@ -3,20 +3,28 @@
 /*
 	NOTE: Expressions are lists, the assumption is everything with more than one element is a list. This can cause some verbal ambiguity in cases like "the quotient of 4 and the sum of 5 and 6 and 7", which translates to [4 / (5 + 6), 7], not 4 / (5 + 6 + 7)
 */ 
-Expression = _? exp:(ExpressionBlock/Comparison)  explist:( _? (", and"/"and"/",") _+ Expression)? 
+Expression = exp:ListOrExpression
+{
+	if (Array.isArray(exp)) {
+    	return {
+        	type: "List",
+            exp: exp
+        };
+    }
+    return exp;
+}
+
+ListOrExpression = _? exp:(ExpressionBlock/Comparison) explist:( _? (", and"/"and"/",") _+ ListOrExpression)?
 {
 	if (DEBUG) console.log("in Expression");
 	if (explist != null) {
 		explist = explist[3];
-        console.log(explist);
+        if (DEBUG) console.log([exp].concat(explist));
+		exp = [exp].concat(explist);
     }
-    if (explist != null) {
-        console.log([exp].concat(explist));
-		return [exp].concat(explist);
-    } else {
-    	console.log(exp);
-    	return exp;
-    }
+    console.log(exp);
+
+    return exp;
 }
 
 ExpressionBlock = '(' _? exp:Expression _? ')'
@@ -28,7 +36,7 @@ ExpressionBlock = '(' _? exp:Expression _? ')'
 	};
 }
 
-Comparison = left:(ExpressionBlock/AdditiveExpression) _? op:(EqualTo/NotEqualTo/GreaterThan/LessThan/LessThanEqualTo/GreaterThanEqualTo) _? right:(ExpressionBlock/Expression)
+Comparison = left:(ExpressionBlock/AdditiveExpression) _? op:(NotEqualTo/GreaterThan/LessThan/LessThanEqualTo/GreaterThanEqualTo/EqualTo) _? right:(ExpressionBlock/Expression)
 {
 	if (DEBUG) console.log("in Comparison");
 	return {
@@ -39,7 +47,7 @@ Comparison = left:(ExpressionBlock/AdditiveExpression) _? op:(EqualTo/NotEqualTo
 	};
 } / AdditiveExpression
 
-EqualTo = ("is equal to"/ "equals") { return "=="; }
+EqualTo = ("is equal to"/"equals"/"is") { return "=="; }
 NotEqualTo = ("is not equal to"/"is differant from"/"is not") { return "!="; }
 GreaterThan = ("is greater than"/"is more than") { return ">"; }
 LessThan = ("is less than"/"is fewer than") { return "<"; }
@@ -70,7 +78,7 @@ AdditiveExpression
 } / MultiplicativeExpression
   
 MultiplicativeExpression
-    = left:(ExpressionBlock/UnaryExpression) _? op:(MultiplicationOp/DivisionOp/ModuloOp) _? right:(ExpressionBlock/MultiplicativeExpression) 
+    = left:(ExpressionBlock/UnaryExpression) _? op:(MultiplicationOp/DivisionOp/ModuloOp) _? right:(ExpressionBlock/AdditiveExpression) 
 { 
 	if (DEBUG) console.log("in MultiplicativeExpression");
 	return {

@@ -4,7 +4,7 @@ Literal = StringLiteral / CharLiteral / NumberLiteral
 
 // This is awkward, but may be the best we can do in pure regex.
 // Each makes one part non-optional, where what we need is "at least one but it could be any"
-NumberLiteral =
+NumberLiteral = ("a"_)?
     mil:MillionsDigit DigitSeparator? thou:ThousandsDigit? DigitSeparator? hun:HundredsDigit? DigitSeparator? end:EndDigit?
 {
 	if (DEBUG) console.log("in NumberLiteral Millions");

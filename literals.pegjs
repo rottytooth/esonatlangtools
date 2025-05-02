@@ -4,7 +4,7 @@ Literal = StringLiteral / CharLiteral / NumberLiteral
 
 // This is awkward, but may be the best we can do in pure regex.
 // Each makes one part non-optional, where what we need is "at least one but it could be any"
-NumberLiteral = ("a"_)?
+NumberLiteral = 
     mil:MillionsDigit DigitSeparator? thou:ThousandsDigit? DigitSeparator? hun:HundredsDigit? DigitSeparator? end:EndDigit?
 {
 	if (DEBUG) console.log("in NumberLiteral Millions");
@@ -33,7 +33,7 @@ NumberLiteral = ("a"_)?
 }
 
 MillionsDigit = 
-	end:(HundredsDigit/EndDigit) (_ / "-")? ("M"/"m") "illion"
+	end:(HundredsDigit/EndDigit/"a") (_ / "-")? ("M"/"m") "illion"
 {
 	if (DEBUG) console.log("in MillionsDigit");
 	return end * 1000000;
@@ -51,12 +51,18 @@ ThousandsDigit =
 {
 	if (DEBUG) console.log("in EndDigit");
 	return end * 1000;
+} / "a" _ "thousand"
+{
+	return 1000;
 }
 
 HundredsDigit = 
 	end:EndDigit (_ / "-")? ("H"/"h") "undred"
 {
 	return end * 100;
+} / "a" _ "hundred"
+{
+	return 100;
 }
 
 EndDigit = TeensDigit / tens:TensDigit (_ "and" _ / "," _ / "-" / _)? ones:OnesDigit?
@@ -94,6 +100,7 @@ OnesDigit =
 TeensDigit = 
     "eleven" { return 11; } /
     "twelve" { return 12; } /
+	"a" _ "dozen" { return 12; } /
     "thirteen" { return 13; } /
     "fourteen" { return 14; } /
     "fifteen" { return 15; } / 

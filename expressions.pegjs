@@ -14,7 +14,7 @@ Expression = exp:ListOrExpression
     return exp;
 }
 
-ListOrExpression = _? exp:(ExpressionBlock/Comparison) explist:( _? (", and"/"and"/",") _+ ListOrExpression)?
+ListOrExpression = _? exp:(Conditional) explist:( _? (", and"/"and"/",") _+ ListOrExpression)?
 {
 	if (DEBUG) console.log("in Expression");
 	if (explist != null) {
@@ -27,16 +27,46 @@ ListOrExpression = _? exp:(ExpressionBlock/Comparison) explist:( _? (", and"/"an
     return exp;
 }
 
-ExpressionBlock = '(' _? exp:Expression _? ')'
-{
-	if (DEBUG) console.log("in ExpressionBlock");
+Conditional = "if" _ c:Comparison _ "then" _ e:Expression fe:Else? {
 	return {
-		type: "ExpressionBlock",
-		expression: exp
+		type: "Conditional",
+		comp: c,
+		exp: e,
+//		else_cond: el,
+		f_else: fe
+	};
+} / "if" _ c:Comparison _ "then" _ e:Expression el:ElseConditional+ fe:Else? {
+	return {
+		type: "Conditional",
+		comp: c,
+		exp: e,
+		else_cond: el,
+		f_else: fe
+}; 
+} / Range
+
+ElseConditional = _ "else" _ "if" _ c:Comparison + "then" _ e:Expression {
+	return {
+		type: "Conditional",
+		comp: c,
+		exp: e
 	};
 }
 
-Comparison = left:(ExpressionBlock/AdditiveExpression) _? op:(NotEqualTo/GreaterThan/LessThan/LessThanEqualTo/GreaterThanEqualTo/EqualTo) _? right:(ExpressionBlock/Expression)
+Else = _ "else" _ e:Expression {
+	return e;
+}
+
+Range  = ((("the"/"a") _)? "range" _)? "from" s:Expression _ "to" _ e:Expression
+{
+	return {
+		type: "Range",
+		start: s,
+		end: e
+	};
+} / Comparison
+
+Comparison = left:(AdditiveExpression) _? op:(NotEqualTo/GreaterThan/LessThan/LessThanEqualTo/GreaterThanEqualTo/EqualTo) _? right:(Expression)
 {
 	if (DEBUG) console.log("in Comparison");
 	return {
@@ -47,16 +77,16 @@ Comparison = left:(ExpressionBlock/AdditiveExpression) _? op:(NotEqualTo/Greater
 	};
 } / AdditiveExpression
 
-EqualTo = ("is equal to"/"equals"/"is") { return "=="; }
-NotEqualTo = ("is not equal to"/"is differant from"/"is not") { return "!="; }
+EqualTo = ("is equal to"/"equals"/"is the same as"/"is") { return "=="; }
+NotEqualTo = ("is not equal to"/"is different from"/"is not") { return "!="; }
 GreaterThan = ("is greater than"/"is more than") { return ">"; }
 LessThan = ("is less than"/"is fewer than") { return "<"; }
-LessThanEqualTo = ("is less than or equal to"/"is less than or the same as") { return "<="; }
-GreaterThanEqualTo = ("is greater than or equal to"/"is more than or the same as"/"is more than or the same as") { return ">="; }
+LessThanEqualTo = ("is less" _ ("than" _)? "or equal to"/"is less" _ ("than" _)? "or the same as") { return "<="; }
+GreaterThanEqualTo = ("is greater _" ("than" _)? "or equal to"/"is more"_ ("than" _)? "or the same as") { return ">="; }
 
 
 AdditiveExpression
-  = left:(ExpressionBlock/MultiplicativeExpression) _? op:(AdditionOp/SubtractionOp) _? right:(ExpressionBlock/AdditiveExpression) 
+  = left:(MultiplicativeExpression) _? op:(AdditionOp/SubtractionOp) _? right:(AdditiveExpression) 
 {
 	if (DEBUG) console.log("in AdditiveExpression");
 	return {
@@ -66,7 +96,7 @@ AdditiveExpression
 		right: right
     };
 } /
-  ("T"/"t") "he" _? op:(AdditionOpDirectObject/SubtractionOpDirectObject) _? "of" _+ left:(ExpressionBlock/MultiplicativeExpression) _? "and" _? right:(ExpressionBlock/AdditiveExpression)
+  ("T"/"t") "he" _? op:(AdditionOpDirectObject/SubtractionOpDirectObject) _? "of" _+ left:(MultiplicativeExpression) _? "and" _? right:(AdditiveExpression)
 {
 	if (DEBUG) console.log("in AdditiveExpression DirectObject");
 	return {
@@ -78,7 +108,7 @@ AdditiveExpression
 } / MultiplicativeExpression
   
 MultiplicativeExpression
-    = left:(ExpressionBlock/UnaryExpression) _? op:(MultiplicationOp/DivisionOp/ModuloOp) _? right:(ExpressionBlock/AdditiveExpression) 
+    = left:(UnaryExpression) _? op:(MultiplicationOp/DivisionOp/ModuloOp) _? right:(AdditiveExpression) 
 { 
 	if (DEBUG) console.log("in MultiplicativeExpression");
 	return {
@@ -88,7 +118,7 @@ MultiplicativeExpression
     	right: right
     };
 } /
-  ("T"/"t") "he" _? op:(MultiplicationOpDirectObject/DivisionOpDirectObject/ModuloOpDirectObject) _? "of" _+ left:(ExpressionBlock/MultiplicativeExpression) _? "and" _? right:(ExpressionBlock/AdditiveExpression)    
+  ("T"/"t") "he" _? op:(MultiplicationOpDirectObject/DivisionOpDirectObject/ModuloOpDirectObject) _? "of" _+ left:(MultiplicativeExpression) _? "and" _? right:(AdditiveExpression)    
 { 
 	if (DEBUG) console.log("in MultiplicativeExpression DirectObject");
 	return {

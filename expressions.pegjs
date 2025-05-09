@@ -140,10 +140,20 @@ DivisionOpDirectObject = "quotient" { return "/"; }
 ModuloOp = "modulo" { return "%"; }
 ModuloOpDirectObject = "modulus" { return "%"; }
 
-UnaryExpression = g:(Literal / VariableName)
+UnaryExpression = g:(Literal / VariableName) c:TypeConvert?
 {
+	if (!!c) {
+		g.type_coerce = c;
+	}
 	return g;
 }
+
+TypeConvert = _? "as" _ type:("string"/"float"/"int"/"integer"/"number"/"boolean"/"bool") 
+{
+	return type;
+}
+
+// TODO: comma still doesn't work for else or else if
 
 VariableName = ("the" _ ("variable"/"var"/"vessel"))? id:Identifier 
 { 

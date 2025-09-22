@@ -111,7 +111,7 @@ TeensDigit =
 
 DigitSeparator = (", and" _ / " and" _ / "," _ / _)
 
-StringLiteral = _? '"' val:[^"]* '"' _?
+StringLiteral = _? ('"'/'“') val:[^"]* ('"'/'”') _?
 { 
 	return {
 		type: 'StringLiteral',

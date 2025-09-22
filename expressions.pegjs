@@ -27,44 +27,48 @@ ListOrExpression = _? exp:(Conditional) explist:( _? (", and"/"and"/",") _+ List
     return exp;
 }
 
-Conditional = "if" _ c:Comparison _ "then" _ e:Expression fe:Else? {
+Conditional = "if" _ c:Comparison _ "then" _ e:Expression _? fe:Else? {
+	if (DEBUG) console.log("in If");
 	return {
 		type: "Conditional",
 		comp: c,
 		exp: e,
-//		else_cond: el,
 		f_else: fe
 	};
-} / "if" _ c:Comparison _ "then" _ e:Expression el:ElseConditional+ fe:Else? {
+} / ForLoop
+
+Else = "else" e:Expression {
+	if (DEBUG) console.log("in Else");
+    return e;
+}
+
+ForLoop = "for" _ id:Identifier _ "in" _ r:Range ":" _ e:Expression {
+	if (DEBUG) console.log("in For");
 	return {
-		type: "Conditional",
-		comp: c,
+		cmd: "for",
+		varname: id.varname,
 		exp: e,
-		else_cond: el,
-		f_else: fe
-}; 
-} / Range
-
-ElseConditional = _ "else" _ "if" _ c:Comparison + "then" _ e:Expression {
-	return {
-		type: "Conditional",
-		comp: c,
-		exp: e
+		range: r
 	};
-}
+} / "for" _ id:Identifier _ "in" _ i:Identifier ":" _ e:Expression {
+	if (DEBUG) console.log("in For");
+	return {
+		cmd: "for",
+		varname: id.varname,
+		exp: e,
+		varname: i
+	};
+} / Range / Comparison
 
-Else = _ "else" _ e:Expression {
-	return e;
-}
-
-Range  = ((("the"/"a") _)? "range" _)? "from" s:Expression _ "to" _ e:Expression
+Range  = ((("the"/"a") _)? ("range"/"count") _)? "from" s:Expression _ "to" _ e:Expression
 {
+	if (DEBUG) console.log("in Range");
 	return {
 		type: "Range",
 		start: s,
 		end: e
 	};
-} / Comparison
+}
 
 Comparison = left:(AdditiveExpression) _? op:(NotEqualTo/GreaterThan/LessThan/LessThanEqualTo/GreaterThanEqualTo/EqualTo) _? right:(Expression)
 {
@@ -140,7 +144,7 @@ DivisionOpDirectObject = "quotient" { return "/"; }
 ModuloOp = "modulo" { return "%"; }
 ModuloOpDirectObject = "modulus" { return "%"; }
 
-UnaryExpression = g:(Literal / VariableName) c:TypeConvert?
+UnaryExpression = g:(Literal / VarWithParam / VariableName) c:TypeConvert?
 {
 	if (!!c) {
 		g.type_coerce = c;
@@ -151,6 +155,24 @@ UnaryExpression = g:(Literal / VariableName) c:TypeConvert?
 TypeConvert = _? "as" _ type:("string"/"float"/"int"/"integer"/"number"/"boolean"/"bool") 
 {
 	return type;
+}
+
+// TODO: comma still doesn't work for else or else if
+
+VarWithParam = p:Identifier "'s" _ id:Identifier {
+	if (DEBUG) console.log("in VarWithParam");
+	return {
+    	type: "VariableWithParam",
+        name: id,
+        param: p
+    };
+} / id:Identifier _ "with" _ p:Identifier {
+	if (DEBUG) console.log("in VarWithParam");
+	return {
+    	type: "VariableWithParam",
+        name: id,
+        param: p
+    };
 }
 
 // TODO: comma still doesn't work for else or else if

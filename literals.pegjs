@@ -36,6 +36,8 @@ MillionsDigit =
 	end:(HundredsDigit/EndDigit/"a") (_ / "-")? ("M"/"m") "illion"
 {
 	if (DEBUG) console.log("in MillionsDigit");
+	if (end == "a") 
+		end = 1;
 	return end * 1000000;
 }
 

@@ -42,14 +42,14 @@ MillionsDigit =
 }
 
 ThousandsDigit = 
-	hun:HundredsDigit (_ "and" _ / _ / "-")? end:EndDigit? ("T"/"t") "housand"
+	hun:HundredsDigit (_ "and" _ / _ / "-")? end:EndDigit? _ ("T"/"t") "housand"
 {
 	if (DEBUG) console.log("in ThousandsDigit");
 	let retval = 0;
     if (end) retval += end;
     if (hun) retval += hun;
 	return retval * 1000;
-} / end:EndDigit (_ / "-")? ("T"/"t") "housand" 
+} / end:EndDigit _ ("T"/"t") "housand" 
 {
 	if (DEBUG) console.log("in EndDigit");
 	return end * 1000;
@@ -67,7 +67,7 @@ HundredsDigit =
 	return 100;
 }
 
-EndDigit = TeensDigit / tens:TensDigit (_ "and" _ / "," _ / "-" / _)? ones:OnesDigit?
+EndDigit = TeensDigit / tens:TensDigit (_ "and" _ / "," _ / "-")? ones:OnesDigit?
 {
 	let retval = 0;
 	if (tens) retval += tens;

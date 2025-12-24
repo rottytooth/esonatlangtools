@@ -27,7 +27,7 @@ ListOrExpression = _? exp:(Conditional) explist:( _? (", and"/"and"/",") _+ List
     return exp;
 }
 
-Conditional = Range / "if" _ c:Comparison _ "then" _ e:Expression _? ";"? _? fe:Else? {
+Conditional = "if" _ c:Comparison _ "then" _ e:Expression _? ";"? _? fe:Else? {
 	if (DEBUG) console.log("in If");
 	return {
 		type: "Conditional",
@@ -61,7 +61,7 @@ ForLoop = "for" _ id:Identifier _ "in" _ s:NumberLiteral _ "to" _ end:NumberLite
 		}
 	}
 	return {
-		type: "ForLoop",
+		cmd: "for",
 		varname: id.varname,
 		exp: e,
 		range: {
@@ -74,7 +74,7 @@ ForLoop = "for" _ id:Identifier _ "in" _ s:NumberLiteral _ "to" _ end:NumberLite
 } / "for" _ id:Identifier _ "in" _ s:NumberLiteral _ "to" _ end:NumberLiteral (","/":")? _ e:Expression {
 	if (DEBUG) console.log("in For with number..to..number");
 	return {
-		type: "ForLoop",
+		cmd: "for",
 		varname: id.varname,
 		exp: e,
 		range: {
@@ -104,7 +104,7 @@ ForLoop = "for" _ id:Identifier _ "in" _ s:NumberLiteral _ "to" _ end:NumberLite
 	}
 	r.step = stepValue;
 	return {
-		type: "ForLoop",
+		cmd: "for",
 		varname: id.varname,
 		exp: e,
 		range: r
@@ -112,7 +112,7 @@ ForLoop = "for" _ id:Identifier _ "in" _ s:NumberLiteral _ "to" _ end:NumberLite
 } / "for" _ id:Identifier _ "in" _ r:Range (","/":")? _ e:Expression {
 	if (DEBUG) console.log("in For with Range");
 	return {
-		type: "ForLoop",
+		cmd: "for",
 		varname: id.varname,
 		exp: e,
 		range: r
@@ -127,7 +127,7 @@ ForLoop = "for" _ id:Identifier _ "in" _ s:NumberLiteral _ "to" _ end:NumberLite
 		}
 	}
 	return {
-		type: "ForLoop",
+		cmd: "for",
 		varname: id.varname,
 		exp: e,
 		range: rangeVar,
@@ -136,7 +136,7 @@ ForLoop = "for" _ id:Identifier _ "in" _ s:NumberLiteral _ "to" _ end:NumberLite
 } / "for" _ id:Identifier _ "in" _ rangeVar:VarWithParam (","/":")? _ e:Expression {
 	if (DEBUG) console.log("in For with VarWithParam");
 	return {
-		type: "ForLoop",
+		cmd: "for",
 		varname: id.varname,
 		exp: e,
 		range: rangeVar
@@ -152,7 +152,7 @@ ForLoop = "for" _ id:Identifier _ "in" _ s:NumberLiteral _ "to" _ end:NumberLite
 	}
 	// For VariableName, the interpreter will need to resolve this at runtime
 	return {
-		type: "ForLoop",
+		cmd: "for",
 		varname: id.varname,
 		exp: e,
 		range: rangeVar,
@@ -161,29 +161,22 @@ ForLoop = "for" _ id:Identifier _ "in" _ s:NumberLiteral _ "to" _ end:NumberLite
 } / "for" _ id:Identifier _ "in" _ rangeVar:VariableName (","/":")? _ e:Expression {
 	if (DEBUG) console.log("in For with VariableName");
 	return {
-		type: "ForLoop",
+		cmd: "for",
 		varname: id.varname,
 		exp: e,
 		range: rangeVar
 	};
 } / Range / Comparison
 
-Range  = (("the"/"a") _)? ("range"/"count") _ "from" _ s:NumberLiteral _ "to" _ e:NumberLiteral
+Range  = ((("the"/"a") _)? ("range"/"count") _)? "from" s:Expression _ "to" _ e:Expression
 {
 	if (DEBUG) console.log("in Range");
 	// Calculate step based on whether we're counting up or down
-	let stepValue = (s.value > e.value) ? -1 : 1;
-	return {
-		type: "Range",
-		start: s,
-		end: e,
-		step: {type: "IntLiteral", value: stepValue}
-	};
-} / "from" _ s:NumberLiteral _ "to" _ e:NumberLiteral
-{
-	if (DEBUG) console.log("in Range (short form)");
-	// Calculate step based on whether we're counting up or down
-	let stepValue = (s.value > e.value) ? -1 : 1;
+	// For non-literal expressions, we'll default to 1 and let runtime determine the actual step
+	let stepValue = 1;
+	if (s.type === "IntLiteral" && e.type === "IntLiteral") {
+		stepValue = (s.value > e.value) ? -1 : 1;
+	}
 	return {
 		type: "Range",
 		start: s,
@@ -266,7 +259,7 @@ DivisionOpDirectObject = "quotient" { return "/"; }
 ModuloOp = "modulo" { return "%"; }
 ModuloOpDirectObject = "modulus" { return "%"; }
 
-UnaryExpression = g:(Range / Literal / VarWithParam / VariableName) c:TypeConvert?
+UnaryExpression = g:(Literal / VarWithParam / VariableName) c:TypeConvert?
 {
 	if (!!c) {
 		g.type_coerce = c;
@@ -299,12 +292,12 @@ VarWithParam = p:(Literal / Identifier) "'s" _ id:Identifier {
 
 // TODO: comma still doesn't work for else or else if
 
-VariableName = ("the" _ ("variable"/"var"/"vessel"))? id:Identifier
-{
+VariableName = ("the" _ ("variable"/"var"/"vessel"))? id:Identifier 
+{ 
 	if (DEBUG) console.log("in VariableName");
 	return {
 		type: "VariableName",
-        name: id
+        name: id 
     };
 }
 

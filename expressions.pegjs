@@ -4,7 +4,7 @@
 	NOTE: Expressions are lists, the assumption is everything with more than one element is a list. This can cause some verbal ambiguity in cases like "the quotient of 4 and the sum of 5 and 6 and 7", which translates to [4 / (5 + 6), 7], not 4 / (5 + 6 + 7)
 */ 
 
-Expression = main:ListOrExpression filter:(_ FilterKeyword _ ListOrExpression)? {
+Expression = reduce:ReduceExpression { return reduce; } / main:ListOrExpression filter:(_ FilterKeyword _ ListOrExpression)? {
 	let result;
 	if (Array.isArray(main)) {
 		result = { type: "List", exp: main };
@@ -20,6 +20,25 @@ Expression = main:ListOrExpression filter:(_ FilterKeyword _ ListOrExpression)? 
 	}
 	return result;
 }
+
+ReduceExpression = op:ReduceOp _ "of" _ exp:ReduceTarget {
+	if (DEBUG) console.log("in ReduceExpression");
+	return {
+		type: "Reduce",
+		operator: op,
+		exp: Array.isArray(exp) ? { type: "List", exp: exp } : exp
+	};
+}
+
+ReduceOp = (("T"/"t")"he" _) op:(
+    ("S"/"s")"um" { return "sum"; }
+    / ("P"/"p")"roduct" { return "product"; }
+    / ("M"/"m")"inimum" { return "minimum"; }
+    / ("M"/"m")"aximum" { return "maximum"; }
+    / ("C"/"c")"ount" { return "count"; }
+    / ("A"/"a")"verage" { return "average"; }
+) { return op; }
+ReduceTarget = Range / Literal / VarWithParam / VariableName
 
 FilterKeyword = "where" / "when"
 

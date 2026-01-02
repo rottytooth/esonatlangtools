@@ -3,16 +3,25 @@
 /*
 	NOTE: Expressions are lists, the assumption is everything with more than one element is a list. This can cause some verbal ambiguity in cases like "the quotient of 4 and the sum of 5 and 6 and 7", which translates to [4 / (5 + 6), 7], not 4 / (5 + 6 + 7)
 */ 
-Expression = exp:ListOrExpression
-{
-	if (Array.isArray(exp)) {
-    	return {
-        	type: "List",
-            exp: exp
-        };
-    }
-    return exp;
+
+Expression = main:ListOrExpression filter:(_ FilterKeyword _ ListOrExpression)? {
+	let result;
+	if (Array.isArray(main)) {
+		result = { type: "List", exp: main };
+	} else {
+		result = main;
+	}
+	if (filter) {
+		return {
+			type: "FilteredExpression",
+			exp: result,
+			filter: filter[3]
+		};
+	}
+	return result;
 }
+
+FilterKeyword = "where" / "when"
 
 ListOrExpression = _? exp:(Conditional) explist:( _? (", and"/"and"/",") _+ ListOrExpression)?
 {
@@ -37,9 +46,9 @@ Conditional = Range / "if" _ c:Comparison _ "then" _ e:Expression _? ";"? _? fe:
 	};
 } / ForLoop
 
-Else = "else" _ e:Expression {
+Else = ("else" / "otherwise") _ e:Expression {
 	if (DEBUG) console.log("in Else");
-    return e;
+	return e;
 }
 
 ForLoop = "for" _ id:Identifier _ "in" _ s:NumberLiteral _ "to" _ end:NumberLiteral _ "step" _ step:UnaryExpression (","/":")? _ e:Expression {
